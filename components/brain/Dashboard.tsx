@@ -2,6 +2,8 @@
 
 import { useEffect, useCallback } from 'react';
 import { useStore } from '@/lib/store';
+import { useIsMobile } from '@/lib/useIsMobile';
+import { HubType, HUB_CONFIG } from '@/lib/types';
 import { HubNav } from './HubNav';
 import { QuickCapture } from './QuickCapture';
 import { ItemDetail } from './ItemDetail';
@@ -16,44 +18,43 @@ interface DashboardProps {
   accessToken: string | null;
 }
 
+const HUBS: HubType[] = ['ideas', 'plans', 'research', 'contacts', 'journal'];
+
+// Hub icon glyphs — retro terminal style
+const HUB_ICONS: Record<string, string> = {
+  home:     '▣',
+  ideas:    '◆',
+  plans:    '◉',
+  research: '◈',
+  contacts: '◎',
+  journal:  '▶',
+};
+
 export default function Dashboard({ accessToken }: DashboardProps) {
   const { state, dispatch } = useStore();
   const { activeHub, selectedItemId, isQuickCaptureOpen } = state;
+  const isMobile = useIsMobile();
 
-  // Global keyboard shortcuts
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // ⌘K = open quick capture
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        if (isQuickCaptureOpen) {
-          dispatch({ type: 'CLOSE_QUICK_CAPTURE' });
-        } else {
-          dispatch({ type: 'OPEN_QUICK_CAPTURE' });
-        }
+        dispatch({ type: isQuickCaptureOpen ? 'CLOSE_QUICK_CAPTURE' : 'OPEN_QUICK_CAPTURE' });
+        return;
       }
-      // ESC = close detail / quick capture
       if (e.key === 'Escape') {
-        if (isQuickCaptureOpen) {
-          dispatch({ type: 'CLOSE_QUICK_CAPTURE' });
-        } else if (selectedItemId) {
-          dispatch({ type: 'SELECT_ITEM', id: null });
-        }
+        if (isQuickCaptureOpen) dispatch({ type: 'CLOSE_QUICK_CAPTURE' });
+        else if (selectedItemId) dispatch({ type: 'SELECT_ITEM', id: null });
+        return;
       }
-      // Number keys 1-5 to switch hubs, 0 for home
       if (!e.metaKey && !e.ctrlKey && !e.altKey) {
-        const hubMap: Record<string, 'home' | 'ideas' | 'plans' | 'research' | 'contacts' | 'journal'> = {
-          '0': 'home',
-          '1': 'ideas',
-          '2': 'plans',
-          '3': 'research',
-          '4': 'contacts',
-          '5': 'journal',
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+        const map: Record<string, 'home' | HubType> = {
+          '0': 'home', '1': 'ideas', '2': 'plans',
+          '3': 'research', '4': 'contacts', '5': 'journal',
         };
-        const target = hubMap[e.key];
-        if (target && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
-          dispatch({ type: 'SET_HUB', hub: target });
-        }
+        if (map[e.key]) dispatch({ type: 'SET_HUB', hub: map[e.key] });
       }
     },
     [isQuickCaptureOpen, selectedItemId, dispatch]
@@ -66,128 +67,143 @@ export default function Dashboard({ accessToken }: DashboardProps) {
 
   function renderHub() {
     switch (activeHub) {
-      case 'home':
-        return <Overview />;
-      case 'ideas':
-        return <IdeaHub />;
-      case 'plans':
-        return <PlanHub />;
-      case 'research':
-        return <ResearchHub />;
-      case 'contacts':
-        return <ContactHub />;
-      case 'journal':
-        return <JournalHub accessToken={accessToken} />;
-      default:
-        return <Overview />;
+      case 'ideas':    return <IdeaHub />;
+      case 'plans':    return <PlanHub />;
+      case 'research': return <ResearchHub />;
+      case 'contacts': return <ContactHub />;
+      case 'journal':  return <JournalHub accessToken={accessToken} />;
+      default:         return <Overview />;
     }
   }
 
   return (
     <div
+      className="crt-frame scan-lines"
       style={{
         display: 'flex',
         flexDirection: 'column',
-        height: '100vh',
+        height: '100dvh',
         overflow: 'hidden',
-        background: 'var(--bg-base)',
+        position: 'relative',
       }}
     >
-      {/* App header */}
+      {/* ── App Header ─────────────────────────────────────── */}
       <header
         style={{
           background: 'var(--bg-deep)',
-          borderBottom: '2px solid var(--border-mid)',
-          padding: '0 1rem',
-          height: '48px',
+          borderBottom: '1px solid var(--border-mid)',
+          paddingTop: 'env(safe-area-inset-top)',
           display: 'flex',
           alignItems: 'center',
-          gap: '1rem',
+          gap: '0.75rem',
+          padding: 'max(0.5rem, env(safe-area-inset-top)) 0.75rem 0.5rem',
           flexShrink: 0,
-          position: 'relative',
           zIndex: 10,
         }}
       >
-        {/* Logo / title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
-          {/* Tape edge decoration */}
-          <div
-            style={{
-              width: '6px',
-              height: '30px',
-              background: 'repeating-linear-gradient(to bottom, var(--mustard) 0px, var(--mustard) 4px, var(--mustard-dark) 4px, var(--mustard-dark) 8px)',
-              marginRight: '8px',
-            }}
-          />
-          <div>
+        {/* Animated neon tape-stripe */}
+        <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+          {['var(--pink)', 'var(--cyan)', 'var(--purple)'].map((c, i) => (
             <div
+              key={i}
               style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '20px',
-                letterSpacing: '0.12em',
-                color: 'var(--text-primary)',
-                lineHeight: 1,
+                width: '4px',
+                height: '26px',
+                background: c,
+                boxShadow: `0 0 6px ${c}, 0 0 12px ${c}`,
+                opacity: 0.9,
               }}
-            >
-              ZACK&apos;S 2ND BRAIN
-            </div>
-            <div
-              style={{
-                fontSize: '9px',
-                color: 'var(--text-dim)',
-                letterSpacing: '0.15em',
-                fontFamily: 'var(--font-body)',
-                marginTop: '1px',
-              }}
-            >
-              PERSONAL KNOWLEDGE SYSTEM v1.0
-            </div>
-          </div>
+            />
+          ))}
         </div>
 
-        <div style={{ flex: 1 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            className="neon-text"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: isMobile ? '18px' : '22px',
+              letterSpacing: '0.1em',
+              color: 'var(--text-primary)',
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            ZACK&apos;S 2ND BRAIN
+          </div>
+          {!isMobile && (
+            <div style={{ fontSize: '9px', color: 'var(--text-dim)', letterSpacing: '0.15em', marginTop: '1px' }}>
+              PERSONAL KNOWLEDGE SYSTEM
+            </div>
+          )}
+        </div>
 
-        {/* Keyboard shortcut hint */}
-        <span style={{ fontSize: '10px', color: 'var(--text-dim)', display: 'none', gap: '4px' }}
-          className="md:flex">
-          <kbd style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-mid)', padding: '1px 4px', fontSize: '9px' }}>⌘K</kbd>
-          quick capture
-        </span>
-
-        {/* Quick capture button */}
         <button
           onClick={() => dispatch({ type: 'OPEN_QUICK_CAPTURE' })}
-          className="btn-retro"
-          style={{
-            borderColor: 'var(--mustard)',
-            color: 'var(--mustard)',
-            background: 'var(--mustard-dark)',
-            fontSize: '12px',
-            padding: '0.25rem 0.6rem',
-          }}
+          className="btn-retro btn-retro-sm"
+          style={{ borderColor: 'var(--pink)', color: 'var(--pink)', background: 'var(--pink-dark)' }}
         >
-          + CAPTURE
+          + {isMobile ? '' : 'CAPTURE'}
         </button>
       </header>
 
-      {/* Hub navigation */}
-      <HubNav />
+      {/* ── Desktop Hub Nav (hidden on mobile) ─────────────── */}
+      {!isMobile && <HubNav />}
 
-      {/* Main content area */}
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
-        {/* Hub content */}
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {/* ── Content area ───────────────────────────────────── */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', minHeight: 0 }}>
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           {renderHub()}
         </div>
 
-        {/* Item detail panel */}
-        {selectedItemId && activeHub !== 'contacts' && (
-          <ItemDetail />
+        {/* Desktop item detail side panel */}
+        {!isMobile && selectedItemId && activeHub !== 'contacts' && (
+          <ItemDetail isMobile={false} />
         )}
       </div>
 
-      {/* Quick capture modal */}
-      <QuickCapture />
+      {/* ── Mobile bottom navigation ────────────────────────── */}
+      {isMobile && (
+        <nav className="bottom-nav">
+          {/* Home */}
+          <button
+            className={`bottom-nav-btn ${activeHub === 'home' ? 'active' : ''}`}
+            style={{ '--active-color': 'var(--text-primary)' } as React.CSSProperties}
+            onClick={() => dispatch({ type: 'SET_HUB', hub: 'home' })}
+          >
+            <span style={{ fontSize: '16px', lineHeight: 1 }}>▣</span>
+            <span>HOME</span>
+          </button>
+
+          {HUBS.map((hub) => {
+            const cfg = HUB_CONFIG[hub];
+            const isActive = activeHub === hub;
+            return (
+              <button
+                key={hub}
+                className={`bottom-nav-btn ${isActive ? 'active' : ''}`}
+                style={{ '--active-color': cfg.color } as React.CSSProperties}
+                onClick={() => dispatch({ type: 'SET_HUB', hub })}
+              >
+                <span style={{ fontSize: '16px', lineHeight: 1 }}>
+                  {HUB_ICONS[hub]}
+                </span>
+                <span style={{ fontSize: '8px' }}>{cfg.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
+
+      {/* Mobile item detail (bottom sheet) */}
+      {isMobile && selectedItemId && activeHub !== 'contacts' && (
+        <ItemDetail isMobile={true} />
+      )}
+
+      {/* Quick capture modal / bottom sheet */}
+      <QuickCapture isMobile={isMobile} />
     </div>
   );
 }

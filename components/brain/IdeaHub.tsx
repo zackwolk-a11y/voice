@@ -7,13 +7,6 @@ import { ItemCard } from './ItemCard';
 
 const FILTERS: Array<IdeaStatus | 'all'> = ['all', 'spark', 'brewing', 'active', 'archived'];
 
-const STATUS_COLORS: Record<IdeaStatus, string> = {
-  spark: '#D4A017',
-  brewing: '#C15B38',
-  active: '#3D8B8C',
-  archived: '#5A5040',
-};
-
 export function IdeaHub() {
   const { getHubItems, dispatch } = useStore();
   const [filter, setFilter] = useState<IdeaStatus | 'all'>('all');
@@ -21,139 +14,74 @@ export function IdeaHub() {
 
   const cfg = HUB_CONFIG.ideas;
   const allItems = getHubItems('ideas');
-
-  const items = allItems.filter((item) => {
-    if (filter !== 'all' && item.ideaStatus !== filter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return (
-        item.title.toLowerCase().includes(q) ||
-        item.content.toLowerCase().includes(q) ||
-        item.tags.some((t) => t.includes(q))
-      );
-    }
-    return true;
-  });
-
-  const counts = {
+  const counts: Record<string, number> = {
     spark: allItems.filter((i) => i.ideaStatus === 'spark').length,
     brewing: allItems.filter((i) => i.ideaStatus === 'brewing').length,
     active: allItems.filter((i) => i.ideaStatus === 'active').length,
     archived: allItems.filter((i) => i.ideaStatus === 'archived').length,
   };
 
+  const items = allItems.filter((item) => {
+    if (filter !== 'all' && item.ideaStatus !== filter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return item.title.toLowerCase().includes(q) || item.content.toLowerCase().includes(q) || item.tags.some((t) => t.includes(q));
+    }
+    return true;
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Hub header */}
-      <div
-        style={{
-          padding: '0.75rem 1rem',
-          borderBottom: '1px solid var(--border-mid)',
-          background: cfg.colorDark,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div>
-          <div
-            className="tape-label"
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '28px',
-              letterSpacing: '0.1em',
-              color: cfg.color,
-            }}
-          >
+      {/* Header */}
+      <div style={{ padding: '0.65rem 0.75rem', borderBottom: '1px solid var(--border-mid)', background: cfg.colorDark, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <span className="tape-label neon-text" style={{ fontFamily: 'var(--font-display)', fontSize: '26px', color: cfg.color }}>
             IDEAS
-          </div>
-          <div style={{ fontSize: '10px', color: 'var(--text-dim)', paddingLeft: '8px', marginTop: '1px' }}>
-            Creative sparks & project concepts
-          </div>
+          </span>
+          <div style={{ flex: 1 }} />
+          <button onClick={() => dispatch({ type: 'OPEN_QUICK_CAPTURE', hub: 'ideas' })}
+            className="btn-retro btn-retro-sm"
+            style={{ borderColor: cfg.color, color: cfg.color, background: cfg.colorDark, boxShadow: `0 0 8px ${cfg.colorGlow}` }}>
+            + SPARK
+          </button>
         </div>
 
-        <div style={{ flex: 1 }} />
-
-        {/* Status filter pills */}
-        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+        {/* Status filters */}
+        <div style={{ display: 'flex', gap: '4px', marginTop: '0.5rem', flexWrap: 'wrap' }}>
           {FILTERS.map((f) => {
-            const isActive = filter === f;
-            const color = f === 'all' ? cfg.color : STATUS_COLORS[f as IdeaStatus];
-            const count = f === 'all' ? allItems.length : counts[f as IdeaStatus];
+            const active = filter === f;
+            const count = f === 'all' ? allItems.length : counts[f] ?? 0;
             return (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '12px',
-                  letterSpacing: '0.08em',
-                  padding: '2px 8px',
-                  border: `1px solid ${isActive ? color : 'var(--border-mid)'}`,
-                  background: isActive ? cfg.colorDark : 'transparent',
-                  color: isActive ? color : 'var(--text-dim)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                {f.toUpperCase()}
-                <span style={{ fontSize: '10px', opacity: 0.7 }}>({count})</span>
+              <button key={f} onClick={() => setFilter(f)} style={{
+                fontFamily: 'var(--font-display)', fontSize: '11px', letterSpacing: '0.08em',
+                padding: '3px 8px', minHeight: 32,
+                border: `1px solid ${active ? cfg.color : 'var(--border-mid)'}`,
+                background: active ? cfg.colorDark : 'transparent',
+                color: active ? cfg.color : 'var(--text-dim)',
+                cursor: 'pointer',
+                boxShadow: active ? `0 0 6px ${cfg.colorGlow}` : 'none',
+                transition: 'all 80ms ease',
+              }}>
+                {f.toUpperCase()} <span style={{ opacity: 0.7 }}>({count})</span>
               </button>
             );
           })}
         </div>
-
-        <button
-          onClick={() => dispatch({ type: 'OPEN_QUICK_CAPTURE', hub: 'ideas' })}
-          className="btn-retro"
-          style={{ borderColor: cfg.color, color: cfg.color, background: cfg.colorDark }}
-        >
-          + SPARK
-        </button>
       </div>
 
       {/* Search */}
-      <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid var(--border)' }}>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search ideas..."
-          style={{
-            width: '100%',
-            padding: '0.35rem 0.6rem',
-            background: 'var(--bg-deep)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-secondary)',
-            fontSize: '12px',
-          }}
-        />
+      <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search ideas..."
+          style={{ width: '100%', padding: '0.45rem 0.65rem', background: 'var(--bg-deep)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }} />
       </div>
 
       {/* Items */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '0.75rem 1rem' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '0.65rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {items.length === 0 ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '3rem 1rem',
-              color: 'var(--text-dim)',
-              fontFamily: 'var(--font-display)',
-              fontSize: '16px',
-              letterSpacing: '0.05em',
-            }}
-          >
+          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-dim)', fontFamily: 'var(--font-display)', fontSize: '15px', letterSpacing: '0.05em' }}>
             {search ? 'No matches.' : cfg.emptyState}
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {items.map((item) => (
-              <ItemCard key={item.id} item={item} />
-            ))}
-          </div>
-        )}
+        ) : items.map((item) => <ItemCard key={item.id} item={item} />)}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Bebas_Neue, Space_Mono } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/utils';
@@ -22,27 +22,39 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: "Zack's 2nd Brain",
   description: 'A deeply personal knowledge-capture and second brain system',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: "Z2B",
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,      // prevent pinch-zoom fighting layout
+  userScalable: false,
+  viewportFit: 'cover', // fills iPhone notch / Dynamic Island
+  themeColor: '#0A071E',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body
         className={cn(
           bebasNeue.variable,
           spaceMono.variable,
-          'flex flex-col min-h-screen bg-bg-base text-text-primary'
+          'flex flex-col bg-bg-base text-text-primary'
         )}
-        style={{ fontFamily: 'var(--font-body)' }}
+        style={{ fontFamily: 'var(--font-body)', height: '100dvh', overflow: 'hidden' }}
       >
         <StoreProvider>
           {children}
           <Toaster
-            position="bottom-right"
+            position="top-center"
             toastOptions={{
               style: {
                 background: 'var(--bg-card)',
@@ -51,7 +63,7 @@ export default function RootLayout({
                 fontFamily: 'var(--font-body)',
                 fontSize: '12px',
                 borderRadius: '0',
-                boxShadow: '3px 3px 0 var(--bg-deep)',
+                boxShadow: '0 0 12px var(--purple-glow)',
               },
             }}
           />
