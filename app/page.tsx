@@ -1,20 +1,19 @@
-import { getHumeAccessToken } from "@/utils/getHumeAccessToken";
-import dynamic from "next/dynamic";
+import dynamic from 'next/dynamic';
+import { getHumeAccessToken } from '@/utils/getHumeAccessToken';
 
-const Chat = dynamic(() => import("@/components/Chat"), {
+const Dashboard = dynamic(() => import('@/components/brain/Dashboard'), {
   ssr: false,
 });
 
 export default async function Page() {
-  const accessToken = await getHumeAccessToken();
-
-  if (!accessToken) {
-    throw new Error('Unable to get access token');
-  }
+  let accessToken: string | null = null;
+  try {
+    accessToken = await getHumeAccessToken();
+  } catch {}
 
   return (
-    <div className={"grow flex flex-col"}>
-      <Chat accessToken={accessToken} />
+    <div className="flex flex-col flex-1 min-h-screen">
+      <Dashboard accessToken={accessToken} />
     </div>
   );
 }
