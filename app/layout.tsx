@@ -1,15 +1,27 @@
-import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
-import "./globals.css";
-import { Nav } from "@/components/Nav";
-import { cn } from "@/utils";
-import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import type { Metadata } from 'next';
+import { Bebas_Neue, Space_Mono } from 'next/font/google';
+import './globals.css';
+import { cn } from '@/utils';
+import { Toaster } from '@/components/ui/sonner';
+import { StoreProvider } from '@/lib/store';
+
+const bebasNeue = Bebas_Neue({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-bebas-neue',
+  display: 'swap',
+});
+
+const spaceMono = Space_Mono({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  variable: '--font-space-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
-  title: "Hume AI - EVI - Next.js Starter",
-  description: "A Next.js starter using Hume AI's Empathic Voice Interface",
+  title: "Zack's 2nd Brain",
+  description: 'A deeply personal knowledge-capture and second brain system',
 };
 
 export default function RootLayout({
@@ -21,21 +33,29 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={cn(
-          GeistSans.variable,
-          GeistMono.variable,
-          "flex flex-col min-h-screen"
+          bebasNeue.variable,
+          spaceMono.variable,
+          'flex flex-col min-h-screen bg-bg-base text-text-primary'
         )}
+        style={{ fontFamily: 'var(--font-body)' }}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Nav />
+        <StoreProvider>
           {children}
-          <Toaster position="top-center" richColors={true} />
-        </ThemeProvider>
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-mid)',
+                color: 'var(--text-primary)',
+                fontFamily: 'var(--font-body)',
+                fontSize: '12px',
+                borderRadius: '0',
+                boxShadow: '3px 3px 0 var(--bg-deep)',
+              },
+            }}
+          />
+        </StoreProvider>
       </body>
     </html>
   );
